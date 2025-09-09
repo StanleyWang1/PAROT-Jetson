@@ -1,0 +1,19 @@
+CAMERA:
+Notes: make sure you are using depthai 2.3, not the newest 3.0.0
+
+pip install cv2
+pip install "depthai<3"
+
+
+MOBILE SAM: 
+Notes: make sure that you use cuda 12.6 -> jetpack 6.2
+Download pytorch / pyvision for cuda, look at documentation: 
+
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install git+https://github.com/ChaoningZhang/MobileSAM.git
+
+
+GENERAL: 
+Notes: 
+pip install numpy
+
