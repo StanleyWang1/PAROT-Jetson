@@ -13,7 +13,7 @@ from mobile_sam import sam_model_registry, SamPredictor
 # CONFIG
 # =========================================================
 # Models
-MODEL_PATH = sorted(Path("MODELS/yolo/runs/pose").glob("train*/weights/best.pt"))[-1]
+YOLO_PATH = sorted(Path("../MODELS/yolo/runs/pose").glob("train*/weights/best.pt"))[-1]
 IMG_SIZE = 384
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -58,15 +58,12 @@ SEND_COMMANDS = False
 # =========================================================
 # LOAD MODELS
 # =========================================================
-print(f"[info] Loading YOLO: {MODEL_PATH}")
-model = YOLO(str(MODEL_PATH))
+print(f"[info] Loading YOLO: {YOLO_PATH}")
+model = YOLO(str(YOLO_PATH))
 
 sam_ckpt = None
 for p in [
-    Path("MODELS") / "mobile_sam" / "weights" / "mobile_sam.pt",
-    Path.home() / "treepoint" / "MobileSAM" / "weights" / "mobile_sam.pt",
-    Path("weights") / "mobile_sam.pt",
-    Path("MobileSAM") / "weights" / "mobile_sam.pt",
+    Path("../MODELS/mobile_sam/weights/mobile_sam.pt")
 ]:
     if p.expanduser().exists():
         sam_ckpt = str(p.expanduser())
