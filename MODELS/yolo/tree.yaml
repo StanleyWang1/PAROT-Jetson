@@ -1,0 +1,9 @@
+path: dataset
+train: images/train
+val: images/val
+test: images/test
+
+names: [trunk]
+kpt_shape: [1, 3]   # <-- must be 3 (x,y,vis) per keypoint
+skeleton: []
+
