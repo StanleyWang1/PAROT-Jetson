@@ -5,8 +5,8 @@ from dynamixel_sdk import COMM_SUCCESS, GroupSyncWrite
 from control_table import *
 from dynamixel_controller import DynamixelController
 
-# PORT_NAME = "/dev/ttyUSB0"
-PORT_NAME = "COM8"
+PORT_NAME = "/dev/ttyUSB0"
+# PORT_NAME = "COM8"
 
 # ----------------------
 # Motor IDs
