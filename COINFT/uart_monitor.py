@@ -237,7 +237,7 @@ def interactive_mode():
         print("  4. Port is not already in use")
 
 
-def quick_test(port='/dev/ttyTHS0', baudrate=9600):
+def quick_test(port='/dev/ttyTHS1', baudrate=115200):
     """Quick test mode with default settings"""
     print(f"Quick test mode: {port} @ {baudrate} baud")
     

@@ -25,12 +25,12 @@ class CoinfTInterface:
     NUM_CHANNELS = 12
     BYTES_PER_CHANNEL = 2
     
-    def __init__(self, port='/dev/ttyTHS0', baudrate=1000000, timeout=1):
+    def __init__(self, port='/dev/ttyTHS1', baudrate=1000000, timeout=1):
         """
         Initialize COINFT interface
         
         Args:
-            port: Serial port (default: /dev/ttyTHS0 = UART1)
+            port: Serial port (default: /dev/ttyTHS1 = UART1 on JetPack 6.x)
             baudrate: Baud rate (default: 1000000 = 1 Mbps)
             timeout: Read timeout in seconds
         """
@@ -261,7 +261,7 @@ def main():
     print("=" * 80)
     
     # Create interface
-    coinft = CoinfTInterface(port='/dev/ttyTHS0', baudrate=1000000)
+    coinft = CoinfTInterface(port='/dev/ttyTHS1', baudrate=1000000)
     
     # Connect
     if not coinft.connect():
