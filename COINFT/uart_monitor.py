@@ -202,9 +202,9 @@ def interactive_mode():
     port = port_input if port_input else ports[0]
     
     # Select baudrate
-    print("\nCommon baud rates: 9600, 19200, 38400, 57600, 115200")
-    baudrate_input = input("Enter baud rate (default: 9600): ").strip()
-    baudrate = int(baudrate_input) if baudrate_input else 9600
+    print("\nCommon baud rates: 9600, 19200, 38400, 57600, 115200, 921600, 1000000 (1 Mbps), 3000000")
+    baudrate_input = input("Enter baud rate (default: 1 Mbps): ").strip()
+    baudrate = int(baudrate_input) if baudrate_input else 1000000
     
     # Select display mode
     print("\nDisplay modes:")
