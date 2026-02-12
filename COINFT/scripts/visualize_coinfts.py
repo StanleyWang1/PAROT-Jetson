@@ -32,7 +32,7 @@ CONFIG_DIR = os.path.join(SCRIPT_DIR, '..', 'hardware_configs')
 # List ALL potential models here. The script will slice this list based on NUM_COINFTS.
 ALL_MODEL_FILES = ['CFT24_MLP.onnx', 'CFT24_MLP.onnx']  
 ALL_NORM_FILES  = ['CFT24_norm.json', 'CFT24_norm.json'] 
-ALL_LABELS      = ['Left Sensor', 'Right Sensor']
+ALL_LABELS      = ['coinFT Sensor', 'Right Sensor']
 
 # Apply Selection
 MODEL_FILES = ALL_MODEL_FILES[:NUM_COINFTS]
@@ -46,7 +46,7 @@ WINDOW_SIZE     = 50     # Moving average window size
 
 # Plotting
 PLOT_HISTORY    = 5.0    # Seconds of history to show
-PLOT_INTERVAL   = 40     # Update plot every N packets
+PLOT_INTERVAL   = 50     # Update plot every N packets
 
 # constants
 COINFT_CH = 12

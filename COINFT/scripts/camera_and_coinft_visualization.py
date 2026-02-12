@@ -30,7 +30,7 @@ READ_TIMEOUT = 0.1
 
 # Paths (script is in coinFT/, configs in coinFT/hardware_configs/)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.join(SCRIPT_DIR, "hardware_configs")
+CONFIG_DIR = os.path.join(SCRIPT_DIR, "..", "hardware_configs")
 
 MODEL_FILE = "CFT24_MLP.onnx"
 NORM_FILE  = "CFT24_norm.json"
