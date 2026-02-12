@@ -28,7 +28,7 @@ BAUD_RATE    = 1000000
 READ_TIMEOUT = 0.1
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.join(SCRIPT_DIR, "hardware_configs")
+CONFIG_DIR = os.path.join(SCRIPT_DIR, "..", "hardware_configs")
 
 MODEL_PATH = os.path.join(CONFIG_DIR, "CFT24_MLP.onnx")
 NORM_PATH  = os.path.join(CONFIG_DIR, "CFT24_norm.json")
