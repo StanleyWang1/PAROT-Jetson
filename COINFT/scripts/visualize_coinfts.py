@@ -48,12 +48,18 @@ WINDOW_SIZE     = 10     # Moving average window size
 PLOT_HISTORY    = 5.0    # Seconds of history to show
 PLOT_INTERVAL   = 40     # Update plot every N packets
 
-# Constants
-COINFT_CH     = 12
-BYTES_PER_SENSOR = COINFT_CH * 2 # 12 uint16s * 2 bytes
-HEADER_BYTES  = b"\x00\x00"
-HEADER_LEN    = 2
-BODY_LEN      = BYTES_PER_SENSOR * NUM_COINFTS 
+# Constants (STX/ETX framed packets, like coinft_interface.py)
+COINFT_CH        = 12
+BYTES_PER_SENSOR = COINFT_CH * 2  # 24 bytes
+STX              = b"\x02"
+ETX              = b"\x03"
+
+# Per-sensor frame inside packet: 1 header byte + 24 data bytes
+SENSOR_FRAME_LEN = 1 + BYTES_PER_SENSOR  # 25 bytes per sensor
+
+# Whole packet: STX + (N * sensor_frame) + ETX
+PACKET_LEN       = 1 + (NUM_COINFTS * SENSOR_FRAME_LEN) + 1
+
 
 # =========================
 # Helpers
@@ -88,33 +94,40 @@ def start_stream(ser):
     time.sleep(0.05)
 
 def read_packet(ser):
-    """Reads one frame for N sensors."""
-    # 1. Look for Header
+    """Reads one framed packet for N sensors: STX ... ETX."""
+    # 1) Find STX
     while True:
         b = ser.read(1)
-        if not b: return None # Timeout
-        if b == b'\x00':
-            b2 = ser.read(1)
-            if b2 == b'\x00':
-                break # Found header!
+        if not b:
+            return None  # timeout
+        if b == STX:
+            break
 
-    # 2. Read Body
-    body = ser.read(BODY_LEN)
-    if len(body) != BODY_LEN:
+    # 2) Read the rest of the packet (everything after STX)
+    rest = ser.read(PACKET_LEN - 1)
+    if len(rest) != PACKET_LEN - 1:
         return None
 
-    # 3. Parse
-    # Unpack all uint16s at once
-    vals = struct.unpack('<' + 'H' * (COINFT_CH * NUM_COINFTS), body)
-    
-    # Split into list of arrays
+    # 3) Validate ETX
+    if rest[-1:] != ETX:
+        return None
+
+    payload = rest[:-1]  # strip ETX
+
+    # 4) Parse each sensor frame: [header_byte][24 data bytes]
     sensor_data_list = []
     for i in range(NUM_COINFTS):
-        start = i * COINFT_CH
-        end   = (i + 1) * COINFT_CH
-        sensor_data_list.append(np.array(vals[start:end], dtype=np.float64))
-        
+        frame = payload[i * SENSOR_FRAME_LEN:(i + 1) * SENSOR_FRAME_LEN]
+        if len(frame) != SENSOR_FRAME_LEN:
+            return None
+
+        data = frame[1:]  # skip 1-byte header
+        # BIG-endian uint16s (matches coinft_interface.py)
+        vals = struct.unpack(">" + "H" * COINFT_CH, data)
+        sensor_data_list.append(np.array(vals, dtype=np.float64))
+
     return sensor_data_list
+
 
 # =========================
 # Main Loop
