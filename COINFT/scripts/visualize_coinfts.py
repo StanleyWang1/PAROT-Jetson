@@ -48,17 +48,11 @@ WINDOW_SIZE     = 10     # Moving average window size
 PLOT_HISTORY    = 5.0    # Seconds of history to show
 PLOT_INTERVAL   = 40     # Update plot every N packets
 
-# Constants (STX/ETX framed packets, like coinft_interface.py)
-COINFT_CH        = 12
-BYTES_PER_SENSOR = COINFT_CH * 2  # 24 bytes
-STX              = b"\x02"
-ETX              = b"\x03"
-
-# Per-sensor frame inside packet: 1 header byte + 24 data bytes
-SENSOR_FRAME_LEN = 1 + BYTES_PER_SENSOR  # 25 bytes per sensor
-
-# Whole packet: STX + (N * sensor_frame) + ETX
-PACKET_LEN       = 1 + (NUM_COINFTS * SENSOR_FRAME_LEN) + 1
+# constants
+COINFT_CH = 12
+STX = b"\x02"
+ETX = b"\x03"
+PACKET_SIZE = 26  # 1 STX + 1 header + 24 data + 1 ETX
 
 
 # =========================
@@ -94,39 +88,31 @@ def start_stream(ser):
     time.sleep(0.05)
 
 def read_packet(ser):
-    """Reads one framed packet for N sensors: STX ... ETX."""
-    # 1) Find STX
+    # 1) Wait for STX
     while True:
         b = ser.read(1)
         if not b:
-            return None  # timeout
+            return None
         if b == STX:
             break
 
-    # 2) Read the rest of the packet (everything after STX)
-    rest = ser.read(PACKET_LEN - 1)
-    if len(rest) != PACKET_LEN - 1:
+    # 2) Read remaining bytes (header + data + ETX) = 25 bytes
+    packet_data = ser.read(PACKET_SIZE - 1)
+    if len(packet_data) != PACKET_SIZE - 1:
         return None
 
-    # 3) Validate ETX
-    if rest[-1:] != ETX:
+    # 3) Verify ETX
+    if packet_data[-1:] != ETX:
         return None
 
-    payload = rest[:-1]  # strip ETX
+    # 4) Extract 24 data bytes (12 channels × 2 bytes)
+    channel_data = packet_data[1:25]  # skip 1-byte header, take next 24
 
-    # 4) Parse each sensor frame: [header_byte][24 data bytes]
-    sensor_data_list = []
-    for i in range(NUM_COINFTS):
-        frame = payload[i * SENSOR_FRAME_LEN:(i + 1) * SENSOR_FRAME_LEN]
-        if len(frame) != SENSOR_FRAME_LEN:
-            return None
+    # 5) Big-endian uint16s (matches coinft_interface.py) :contentReference[oaicite:1]{index=1}
+    vals = struct.unpack(">" + "H"*COINFT_CH, channel_data)
 
-        data = frame[1:]  # skip 1-byte header
-        # BIG-endian uint16s (matches coinft_interface.py)
-        vals = struct.unpack(">" + "H" * COINFT_CH, data)
-        sensor_data_list.append(np.array(vals, dtype=np.float64))
+    return [np.array(vals, dtype=np.float64)]
 
-    return sensor_data_list
 
 
 # =========================
