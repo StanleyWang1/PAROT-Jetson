@@ -42,7 +42,7 @@ LABELS      = ALL_LABELS[:NUM_COINFTS]
 # Data Processing
 INITIAL_SAMPLES = 500    # Samples to collect for tare
 IGNORED_SAMPLES = 10     # Ignore start transient
-WINDOW_SIZE     = 10     # Moving average window size
+WINDOW_SIZE     = 50     # Moving average window size
 
 # Plotting
 PLOT_HISTORY    = 5.0    # Seconds of history to show
