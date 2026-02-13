@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Camera (unchanged) + CoinFT FT-only logger -> CSV + save camera video.
+HEADLESS: Camera + CoinFT FT-only logger -> CSV + save camera video.
 
 - CoinFT logs: t_wall, t_rel, Fx,Fy,Fz,Mx,My,Mz
 - CSV is saved NEXT TO THIS SCRIPT (not your terminal cwd)
 - Video is saved NEXT TO THIS SCRIPT
 - Ctrl+C cleanly stops and saves (flushes periodically too)
+- NO display/window calls (safe over SSH with no DISPLAY)
 """
 
 import time
@@ -42,10 +43,8 @@ STX         = b"\x02"
 ETX         = b"\x03"
 PACKET_SIZE = 26
 
-# Save CSV next to this script (reliable location)
-OUT_CSV = os.path.join(SCRIPT_DIR, f"coinft_ft_{time.strftime('%Y%m%d_%H%M%S')}.csv")
-
-# Save video next to this script
+# Save CSV/video next to this script
+OUT_CSV   = os.path.join(SCRIPT_DIR, f"coinft_ft_{time.strftime('%Y%m%d_%H%M%S')}.csv")
 OUT_VIDEO = os.path.join(SCRIPT_DIR, f"camera_{time.strftime('%Y%m%d_%H%M%S')}.mp4")
 
 # Ensure data is written regularly (so Ctrl+C never loses everything)
@@ -165,45 +164,32 @@ def coinft_logger(stop_event):
 
 
 # =========================
-# Main (camera code UNCHANGED, plus VideoWriter)
+# Main (HEADLESS camera + VideoWriter)
 # =========================
 def main():
     stop_event = threading.Event()
 
-    # IMPORTANT: not daemon -> allows clean join on Ctrl+C
     logger_thread = threading.Thread(target=coinft_logger, args=(stop_event,))
     logger_thread.start()
 
+    cap = None
     video_writer = None
 
     try:
-        # =========================
-        # CAMERA CODE (UNCHANGED)
-        # =========================
-        import cv2
-        import time
-
         # Open camera
         cap = cv2.VideoCapture(0)
 
         if not cap.isOpened():
             print("Camera not opened")
-            stop_event.set()
-            logger_thread.join()
             return
 
-        # 🔧 Reduce camera resolution at source (VERY important)
+        # Reduce camera resolution at source
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
         cap.set(cv2.CAP_PROP_FPS, 30)
-
-        # 🔧 Reduce internal buffering (helps latency)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-        cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("camera", 800, 450)
-
-        # ---- VideoWriter (added) ----
+        # Video writer
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         video_writer = cv2.VideoWriter(OUT_VIDEO, fourcc, 30.0, (640, 360))
         if video_writer.isOpened():
@@ -211,9 +197,8 @@ def main():
         else:
             print("WARNING: VideoWriter not opened; video will not be saved.")
             video_writer = None
-        # -----------------------------
 
-        print("Press q to quit")
+        print("Running headless. Press Ctrl+C to stop.")
 
         prev_time = time.time()
         frame_count = 0
@@ -224,34 +209,19 @@ def main():
                 print("Frame failed")
                 break
 
-            # OPTIONAL: remove resize entirely since we set camera to 640x360
-            # frame = cv2.resize(frame, (640, 360))
-
-            cv2.imshow("camera", frame)
-
-            # ---- Write video frame (added) ----
+            # Write video frame
             if video_writer is not None:
                 if frame.shape[1] != 640 or frame.shape[0] != 360:
-                    frame_to_write = cv2.resize(frame, (640, 360))
-                else:
-                    frame_to_write = frame
-                video_writer.write(frame_to_write)
-            # ----------------------------------
+                    frame = cv2.resize(frame, (640, 360))
+                video_writer.write(frame)
 
             # FPS counter
             frame_count += 1
             if frame_count % 30 == 0:
                 now = time.time()
                 fps = 30 / (now - prev_time)
-                print(f"FPS: {fps:.1f}")
+                print(f"[Camera] FPS: {fps:.1f}")
                 prev_time = now
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-        cap.release()
-        cv2.destroyAllWindows()
-        # =========================
 
     except KeyboardInterrupt:
         print("\nCtrl+C detected. Stopping...")
@@ -261,7 +231,9 @@ def main():
         stop_event.set()
         logger_thread.join()
 
-        # Close video writer
+        # Close camera + video writer
+        if cap is not None:
+            cap.release()
         if video_writer is not None:
             video_writer.release()
             print("Saved video:", OUT_VIDEO)
