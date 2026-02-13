@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Camera (unchanged) + CoinFT FT-only logger -> CSV.
+Camera (unchanged) + CoinFT FT-only logger -> CSV + save camera video.
 
 - CoinFT logs: t_wall, t_rel, Fx,Fy,Fz,Mx,My,Mz
 - CSV is saved NEXT TO THIS SCRIPT (not your terminal cwd)
+- Video is saved NEXT TO THIS SCRIPT
 - Ctrl+C cleanly stops and saves (flushes periodically too)
 """
 
@@ -43,6 +44,9 @@ PACKET_SIZE = 26
 
 # Save CSV next to this script (reliable location)
 OUT_CSV = os.path.join(SCRIPT_DIR, f"coinft_ft_{time.strftime('%Y%m%d_%H%M%S')}.csv")
+
+# Save video next to this script
+OUT_VIDEO = os.path.join(SCRIPT_DIR, f"camera_{time.strftime('%Y%m%d_%H%M%S')}.mp4")
 
 # Ensure data is written regularly (so Ctrl+C never loses everything)
 FLUSH_EVERY = 50
@@ -161,7 +165,7 @@ def coinft_logger(stop_event):
 
 
 # =========================
-# Main (camera code UNCHANGED)
+# Main (camera code UNCHANGED, plus VideoWriter)
 # =========================
 def main():
     stop_event = threading.Event()
@@ -169,6 +173,8 @@ def main():
     # IMPORTANT: not daemon -> allows clean join on Ctrl+C
     logger_thread = threading.Thread(target=coinft_logger, args=(stop_event,))
     logger_thread.start()
+
+    video_writer = None
 
     try:
         # =========================
@@ -197,6 +203,16 @@ def main():
         cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
         cv2.resizeWindow("camera", 800, 450)
 
+        # ---- VideoWriter (added) ----
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        video_writer = cv2.VideoWriter(OUT_VIDEO, fourcc, 30.0, (640, 360))
+        if video_writer.isOpened():
+            print("Saving video to:", OUT_VIDEO)
+        else:
+            print("WARNING: VideoWriter not opened; video will not be saved.")
+            video_writer = None
+        # -----------------------------
+
         print("Press q to quit")
 
         prev_time = time.time()
@@ -212,6 +228,15 @@ def main():
             # frame = cv2.resize(frame, (640, 360))
 
             cv2.imshow("camera", frame)
+
+            # ---- Write video frame (added) ----
+            if video_writer is not None:
+                if frame.shape[1] != 640 or frame.shape[0] != 360:
+                    frame_to_write = cv2.resize(frame, (640, 360))
+                else:
+                    frame_to_write = frame
+                video_writer.write(frame_to_write)
+            # ----------------------------------
 
             # FPS counter
             frame_count += 1
@@ -232,8 +257,15 @@ def main():
         print("\nCtrl+C detected. Stopping...")
 
     finally:
+        # Stop CoinFT logger
         stop_event.set()
         logger_thread.join()
+
+        # Close video writer
+        if video_writer is not None:
+            video_writer.release()
+            print("Saved video:", OUT_VIDEO)
+
         print("Saved CSV:", OUT_CSV)
 
 
